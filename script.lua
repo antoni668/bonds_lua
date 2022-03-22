@@ -1,5 +1,5 @@
 
---cd ../../#MyProjects/lua/bonds
+-- cd ../../#MyProjects/lua/bonds
 
 dofile (getScriptPath() .. "\\data\\interface.lua")
 dofile (getScriptPath() .. "\\data\\mainf.lua")
@@ -43,69 +43,151 @@ end
 --===================================================================================================================
 --===================================================================================================================
 
--- Quotation table data
-
-function getEmitParams (ClassCode, SecCode, line)
+function getAskPrice(t, rows, row)
+	local vol
+	local price
 	
-	local Offer_vol
-	local Offer_price
-	local Offer_count
-	
-	local Bid_vol
-	local Bid_price
-	local Bid_count
-	
-	local Quotes = {}
-	
-	Quotes = getQuoteLevel2(ClassCode, SecCode)
-	Offer_count = tonumber(Quotes.offer_count)
-	Bid_count = tonumber(Quotes.bid_count)
-	
-	if Offer_count > 0 then
-		Offer_vol = tonumber(Quotes.offer[1].quantity)
-		Offer_price = tonumber(Quotes.offer[1].price)
+	if rows > 0 then
+		vol = tonumber(t.offer[row].quantity)
+		price = tonumber(t.offer[row].price)
 	end
 	
-	if Bid_count > 0 then
-		Bid_vol = tonumber(Quotes.bid[Bid_count].quantity)
-		Bid_price = tonumber(Quotes.bid[Bid_count].price)
+	return price, vol
+end
+
+function getBidPrice(t, rows, row)
+	local vol
+	local price
+	
+	if rows > 0 then
+		vol = tonumber(t.bid[row].quantity)
+		price = tonumber(t.bid[row].price)
 	end
 	
-	return Offer_count, Offer_vol, Offer_price, Bid_count, Bid_vol, Bid_price
+	return price, vol
 end
 
-
---Required target level for buying
---[[
-function calculateLevel(t, nominal, quantity, operation)
+function AverageOfAllAskPrices(t)
+	local nom = t['NOMINAL']
+	local rows = t['ASK_ROWS']
 	
-	for
+	local volues = 0
+	local i = 1
+	local calc = 0
 	
-	Средняя цена аск по которой достижим объем = (1000*94.10+1000*94.15)/2000 = 94.125
+	for i = 1, rows do
+		local p, v = getAskPrice(t, rows, i)
+		volues = volues + v
+		i = i + 1
+		calc = calc + v * p
+	end
+	
+	return calc/volues
 end
---]]
+
+function AverageOfAllBidPrices(t)
+	local nom = t['NOMINAL']
+	local rows = t['ASK_ROWS']
+	
+	local volues = 0
+	local i = 1
+	local calc = 0
+	
+	for i = rows, 1 do
+		local p, v = getAskPrice(t, rows, i)
+		volues = volues + v
+		i = i - 1
+		calc = calc + v * p
+	end
+	
+	return calc/volues
+end
+
+function TargetAverageAskPrice(t)
+
+	local nom = t['NOMINAL']
+	local rows = t['ASK_ROWS']
+	local vol = t['REQUIRED_VOL']
+	
+	local volues = 0
+	local i = 1
+	local calc = 0
+	while volues < vol do
+		local p, v = getAskPrice(t, rows, i)
+		volues_sum = volues_sum + v
+		
+		if volues_sum > vol then
+			v = vol - volues
+		else
+			volues = volues_sum
+		end
+		
+		i = i + 1
+
+		calc = calc + v * p
+	end
+	
+	return calc/vol	
+end
+
+function TargetAverageBidPrice(t)
+
+	local nom = t['NOMINAL']
+	local rows = t['ASK_ROWS']
+	local vol = t['REQUIRED_VOL']
+	
+	local volues = 0
+	local i = rows
+	local calc = 0
+	while volues < vol do
+		local p, v = getAskPrice(t, rows, i)
+		volues_sum = volues_sum + v
+		
+		if volues_sum > vol then
+			v = vol - volues
+		else
+			volues = volues_sum
+		end
+		
+		i = i - 1
+
+		calc = calc + v * p
+	end
+	
+	return calc/vol	
+end
+
 
 -- return list of emitent parameters
-
 function getEmitInfo(ClassCode, SecCode)
 	local ISIN = getSecurityInfo(ClassCode, SecCode).isin_code
 	local nominal = getSecurityInfo(ClassCode, SecCode).face_value
-	local reqyired_quantity = math.floor((N * 1000000)/nominal)
+	local reqyired_vol = math.floor((N * 1000000)/nominal)
+	local Quotes = getQuoteLevel2(ClassCode, SecCode)
+	local ask_rows = tonumber(Quotes.offer_count)
+	local bid_rows = tonumber(Quotes.bid_count)
+	local best_ask_price, best_ask_vol = getAskPrice(Quotes, ask_rows, 1)
+	local best_bid_price, best_bid_vol = getABidPrice(Quotes, bid_rows, bid_rows)
 
 	list = {
-		['EMIT'] = SecCode,
-		['CLASS'] = ClassCode,
-		['ISIN'] = ISIN,
-		['NOMINAL'] = nominal,
-		['REQUIRED_QUANTITY'] = reqyired_quantity
-	}
+			['EMIT'] = SecCode,
+			['CLASS'] = ClassCode,
+			['ISIN'] = ISIN,
+			['NOMINAL'] = nominal,
+			['REQUIRED_VOL'] = reqyired_vol,
+			['ASK_BEST_PRICE'] = best_ask_price,
+			['ASK_ROWS'] = ask_rows,
+			['ASK_BEST_VOL'] = best_ask_vol,
+			['BID_BEST_PRICE'] = best_bid_price,
+			['BID_BEST_VOL'] = best_bid_vol,
+			['BID_ROWS'] = bid_rows,
+			}
 	
 	return list
 end
 
 
--- return list of all emitents parameters
-
+-- return list of parameters of all emitents 
 function getList(...)
 	local list = {}
 	local args = table.pack(...)
