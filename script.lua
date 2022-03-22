@@ -1,14 +1,18 @@
+
+--cd ../../#MyProjects/lua/bonds
+
 dofile (getScriptPath() .. "\\data\\interface.lua")
 dofile (getScriptPath() .. "\\data\\mainf.lua")
 
 function OnInit()
+	edit = false
+	N = loadN(getScriptPath().."\\data\\N.txt")
+	
 	local stopped = false
-	local accS = "NL0011100043"
 	local rows = 0
-	local sec_list = {}
-	local N = 0 -- необходимое количество облигаций
+	local list = {}
 	local Quotes = {}
-	A, B, C, D, E, F = 0,0,0,0,0,0
+	A = 0
 end
 
 function OnStop()
@@ -19,24 +23,29 @@ function OnClose()
 	stopExecution()
 end
 
+--===================================================================================================================
+--===================================================================================================================
+
 function main()
-	--rows = #split(getClassSecurities('TQOB')..getClassSecurities('TQIR'), ',') -- To add 'TQCB'
-	rows = #split(getClassSecurities('CETS'), ',')
+	rows = #getList('TQOB') -- Добавить 'TQIR', 'TQCB'
 	PrintTable(Table, "Table", getScriptPath().."\\data\\WinPos.txt", "r")
 	while not stopped do
 
-		--sec_list = split(getClassSecurities('TQOB')..getClassSecurities('TQIR'), ',') -- To add 'TQCB'
-		sec_list = split(getClassSecurities('CETS'), ',')
+		list = getList('TQOB') -- Добавить 'TQIR', 'TQCB'
 		y1,x1,h1,w1 = saveWindowCoordinates(Table)
-		A, B, C, D, E, F = getEmitParams ("CETS", "EUR_RUB__TOM") --TEST
-		SetCells(Table, ValuesForOutput)
+		SetCells(Table, list)
+		SetTableNotificationCallback(Table, f_cb_Table)
 
 		sleep(200)
 	end
 end
 
+--===================================================================================================================
+--===================================================================================================================
 
-function getEmitParams (ClassCode, SecCode) -- Данные из стакана по инструменту
+-- Quotation table data
+
+function getEmitParams (ClassCode, SecCode, line)
 	
 	local Offer_vol
 	local Offer_price
@@ -65,6 +74,52 @@ function getEmitParams (ClassCode, SecCode) -- Данные из стакана по инструменту
 	return Offer_count, Offer_vol, Offer_price, Bid_count, Bid_vol, Bid_price
 end
 
-function getTargetLevel (count)
+
+--Required target level for buying
+--[[
+function calculateLevel(t, nominal, quantity, operation)
 	
+	for
+	
+	Средняя цена аск по которой достижим объем = (1000*94.10+1000*94.15)/2000 = 94.125
 end
+--]]
+
+-- return list of emitent parameters
+
+function getEmitInfo(ClassCode, SecCode)
+	local ISIN = getSecurityInfo(ClassCode, SecCode).isin_code
+	local nominal = getSecurityInfo(ClassCode, SecCode).face_value
+	local reqyired_quantity = math.floor((N * 1000000)/nominal)
+
+	list = {
+		['EMIT'] = SecCode,
+		['CLASS'] = ClassCode,
+		['ISIN'] = ISIN,
+		['NOMINAL'] = nominal,
+		['REQUIRED_QUANTITY'] = reqyired_quantity
+	}
+	
+	return list
+end
+
+
+-- return list of all emitents parameters
+
+function getList(...)
+	local list = {}
+	local args = table.pack(...)
+	
+	for i = 1, args.n do
+		local classCode = args[i]   
+		local emit_list = split(getClassSecurities(classCode), ',')
+
+		for j = 1, #emit_list do
+			local secCode = emit_list[j]
+			list[j] = getEmitInfo(classCode, secCode)
+		end
+	end
+
+	return list
+end
+

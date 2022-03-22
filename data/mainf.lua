@@ -48,7 +48,7 @@ param == 5 - Negative and positive fractional numbers
 			end
 		end
 		if str == "" then
-			--str = "0"
+			str = "0"
 		elseif str == "." then
 			str = "0."
 		end
@@ -56,9 +56,30 @@ param == 5 - Negative and positive fractional numbers
 	return str
 end
 
+function loadN(path)
+	local file = io.open(path, 'r')
+	local N = file:read('*n')
+	file:close()
+	
+	if N ~= nil and N ~= '' then
+		return tonumber(N)
+	else
+		return 1
+	end
+	
+	return tonumber(N)
+end
+
+function saveN(path, N)
+	local file = io.open(path, 'w+')
+	file:write(N)
+	file:close()
+end
+
 function stopExecution()
 	stopped = true
 	writeWindowCoordinatesToFile(Table, getScriptPath().."\\data\\WinPos.txt", "w+", y1,x1,h1,w1)
+	saveN(getScriptPath().."\\data\\N.txt", N)
 	destroyTables()
 	return 3000
 end
@@ -74,4 +95,13 @@ function split(str, sep)
 		i = i + 1
 	end
 	return t
+end
+
+function tabConcat(t1, t2)
+
+	for i = 1, #t2 do
+		table.insert(t1, t2[i])
+	end
+
+	return t1
 end
