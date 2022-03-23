@@ -44,17 +44,20 @@ function setWindow(t, name, path, reg, rowsNumber)
 end
 
 function PrintTable(t, name, path, reg)
-	AddColumn(t, 1,"Column1", true, QTABLE_STRING_TYPE, 20)
-	AddColumn(t, 2,"Среднее", true, QTABLE_STRING_TYPE, 25)
-	AddColumn(t, 3,"Bid", true, QTABLE_STRING_TYPE, 20)
+	AddColumn(t, 1,"Код эмитента", true, QTABLE_STRING_TYPE, 20)
+	AddColumn(t, 2,"ISIN", true, QTABLE_STRING_TYPE, 25)
+	AddColumn(t, 3,"Средняя цена, по которой достижим объем (Ask/Bid)", true, QTABLE_STRING_TYPE, 55)
+	AddColumn(t, 4,"Средняя цена всех заявок Ask/Bid", true, QTABLE_STRING_TYPE, 40)
 	setWindow(t, name, path, reg, rows)
 end
 
-function SetCells(t, list)
-	for i = 1, #list do
-		SetCell(t, i+1, 1, list[i]['EMIT'])
-		SetCell(t, i+1, 2, tostring(list[i]['REQUIRED_QUANTITY']))
-		SetCell(t, i+1, 3, list[i]['ISIN'])
+function SetCells(t, l)
+	for i = 1, #l do
+		SetCell(t, i+1, 1, l[i]['EMIT'])
+		SetCell(t, i+1, 2, tostring(l[i]['ISIN']))
+		SetCell(t, i+1, 3, tostring(l[i]['TARGET_ASK_PRICE']) .. ' / ' .. tostring(l[i]['TARGET_BID_PRICE']))
+		SetCell(t, i+1, 4, tostring(l[i]['AVERAGE_ASK_PRICE']) .. ' / ' .. tostring(l[i]['AVERAGE_BID_PRICE']))
+		SetCell(t, i+1, 5, tostring(A) .. ' / ' .. tostring(B))
 	end
 	SetCell(Table, 1, 1, "N млн. рублей:")
 	SetCell(Table, 1, 2, tostring(N))

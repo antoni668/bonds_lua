@@ -13,6 +13,7 @@ function OnInit()
 	local list = {}
 	local Quotes = {}
 	A = 0
+	B = 0
 end
 
 function OnStop()
@@ -27,7 +28,7 @@ end
 --===================================================================================================================
 
 function main()
-	rows = #getList('TQOB') -- Добавить 'TQIR', 'TQCB'
+	rows = #getList('TQOB') + 1 -- Добавить 'TQIR', 'TQCB'
 	PrintTable(Table, "Table", getScriptPath().."\\data\\WinPos.txt", "r")
 	while not stopped do
 
@@ -35,7 +36,7 @@ function main()
 		y1,x1,h1,w1 = saveWindowCoordinates(Table)
 		SetCells(Table, list)
 		SetTableNotificationCallback(Table, f_cb_Table)
-
+		
 		sleep(200)
 	end
 end
@@ -48,8 +49,8 @@ function getAskPrice(t, rows, row)
 	local price
 	
 	if rows > 0 then
-		vol = tonumber(t.offer[row].quantity)
-		price = tonumber(t.offer[row].price)
+		vol = tonumber(t.offer[row].quantity) or 0
+		price = tonumber(t.offer[row].price) or 0
 	end
 	
 	return price, vol
@@ -67,86 +68,104 @@ function getBidPrice(t, rows, row)
 	return price, vol
 end
 
-function AverageOfAllAskPrices(t)
-	local nom = t['NOMINAL']
-	local rows = t['ASK_ROWS']
-	
-	local volues = 0
-	local i = 1
+function AverageOfAllAskPrices(t,nom, rows)
+	local volume = 0
 	local calc = 0
 	
 	for i = 1, rows do
 		local p, v = getAskPrice(t, rows, i)
-		volues = volues + v
+		volume = volume + v
 		i = i + 1
 		calc = calc + v * p
 	end
 	
-	return calc/volues
+	local result = calc/volume
+	
+	return result
+	--[[
+	if type(result) == number then
+		return result
+	else
+		return ''
+	end]]
 end
 
-function AverageOfAllBidPrices(t)
-	local nom = t['NOMINAL']
-	local rows = t['ASK_ROWS']
-	
-	local volues = 0
-	local i = 1
+function AverageOfAllBidPrices(t,nom, rows)
+	local volume = 0
 	local calc = 0
 	
-	for i = rows, 1 do
-		local p, v = getAskPrice(t, rows, i)
-		volues = volues + v
+	for i = rows, 1, -1 do
+		local p, v = getBidPrice(t, rows, rows)
+		volume = volume + v
 		i = i - 1
 		calc = calc + v * p
 	end
 	
-	return calc/volues
+	local result = calc/volume
+	
+	return result
+	--[[
+	if type(result) == number then
+		return result
+	else
+		return ''
+	end]]
 end
 
-function TargetAverageAskPrice(t)
+function TargetAverageAskPrice(t, nom, rows, vol)
 
-	local nom = t['NOMINAL']
-	local rows = t['ASK_ROWS']
-	local vol = t['REQUIRED_VOL']
-	
-	local volues = 0
+	local volume = 0
+	local volume_sum = 0
 	local i = 1
 	local calc = 0
-	while volues < vol do
-		local p, v = getAskPrice(t, rows, i)
-		volues_sum = volues_sum + v
-		
-		if volues_sum > vol then
-			v = vol - volues
-		else
-			volues = volues_sum
+	local x = false
+
+	while not x do
+		if i > rows then
+			return '---'
 		end
 		
-		i = i + 1
+		local p, v = getAskPrice(t, rows, i)
+		
+		volume_sum = volume_sum + v
+		
+		if volume_sum > vol then
+			v = vol - volume
+			x = true
+		else
+			volume = volume_sum
+		end
 
-		calc = calc + v * p
+		i = i + 1
+		
+		calc = calc + v * p		
 	end
 	
-	return calc/vol	
+	return calc/vol
 end
 
-function TargetAverageBidPrice(t)
+function TargetAverageBidPrice(t, nom, rows, vol)
 
-	local nom = t['NOMINAL']
-	local rows = t['ASK_ROWS']
-	local vol = t['REQUIRED_VOL']
-	
-	local volues = 0
-	local i = rows
+	local volume = 0
+	local volume_sum = 0
+	local i = 1
 	local calc = 0
-	while volues < vol do
-		local p, v = getAskPrice(t, rows, i)
-		volues_sum = volues_sum + v
+	local x = false
+	
+	while not x do
+		if i > rows then
+			return '---'
+		end
 		
-		if volues_sum > vol then
-			v = vol - volues
+		local p, v = getBidPrice(t, rows, rows)
+		
+		volume_sum = volume_sum + v
+		
+		if volume_sum > vol then
+			v = vol - volume
+			x = true
 		else
-			volues = volues_sum
+			volume = volume_sum
 		end
 		
 		i = i - 1
@@ -167,9 +186,9 @@ function getEmitInfo(ClassCode, SecCode)
 	local ask_rows = tonumber(Quotes.offer_count)
 	local bid_rows = tonumber(Quotes.bid_count)
 	local best_ask_price, best_ask_vol = getAskPrice(Quotes, ask_rows, 1)
-	local best_bid_price, best_bid_vol = getABidPrice(Quotes, bid_rows, bid_rows)
-
-	list = {
+	local best_bid_price, best_bid_vol = getBidPrice(Quotes, bid_rows, bid_rows)
+	
+	local list = {
 			['EMIT'] = SecCode,
 			['CLASS'] = ClassCode,
 			['ISIN'] = ISIN,
@@ -181,11 +200,34 @@ function getEmitInfo(ClassCode, SecCode)
 			['BID_BEST_PRICE'] = best_bid_price,
 			['BID_BEST_VOL'] = best_bid_vol,
 			['BID_ROWS'] = bid_rows,
-			}
+		}
+
+	local average_ask_price
+	local average_bid_price
 	
+	local target_average_ask_price = TargetAverageAskPrice(Quotes, nominal, ask_rows, reqyired_vol)
+	local target_average_bid_price = TargetAverageBidPrice(Quotes, nominal, bid_rows, reqyired_vol)
+	
+	if ask_rows > 0 then
+		average_ask_price = AverageOfAllAskPrices(Quotes, nominal, ask_rows)
+	else
+		average_ask_price = '---'
+	end
+	
+	if ask_rows > 0 then
+		average_bid_price = AverageOfAllBidPrices(Quotes, nominal, bid_rows)
+	else
+		average_bid_price = '---'
+	end
+	
+	list['AVERAGE_ASK_PRICE'] = average_ask_price
+	list['AVERAGE_BID_PRICE'] = average_bid_price
+	
+	list['TARGET_ASK_PRICE'] = target_average_ask_price
+	list['TARGET_BID_PRICE'] = target_average_bid_price
+
 	return list
 end
-
 
 -- return list of parameters of all emitents 
 function getList(...)
@@ -195,13 +237,12 @@ function getList(...)
 	for i = 1, args.n do
 		local classCode = args[i]   
 		local emit_list = split(getClassSecurities(classCode), ',')
-
 		for j = 1, #emit_list do
 			local secCode = emit_list[j]
+			local x = Subscribe_Level_II_Quotes(classCode, secCode)
 			list[j] = getEmitInfo(classCode, secCode)
 		end
 	end
-
 	return list
 end
 
