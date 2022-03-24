@@ -1,13 +1,14 @@
-
--- cd ../../#MyProjects/lua/bonds
-
 dofile (getScriptPath() .. "\\data\\interface.lua")
 dofile (getScriptPath() .. "\\data\\mainf.lua")
 
 function OnInit()
+	b1 = 'TQOB'
+	b2 = 'TQIR'
+	b3 = 'TQCB'
+	
 	N = loadN(getScriptPath().."\\data\\N.txt")
 	Table = AllocTable()
-	
+
 	local stopped = false
 	local rows = 0
 	local list = {}
@@ -25,12 +26,12 @@ end
 ---------------------------------------------------------------------------------------------------------------------
 
 function main()
-	rows = #getList('TQOB') + 1 -- Добавить 'TQIR', 'TQCB'
+	rows = #getList(b1, b2, b3) + 1
 	
 	PrintTable(Table, "Достижимые цены", getScriptPath().."\\data\\WinPos.txt", "r")
 	while not stopped do
 
-		list = getList('TQOB') -- Добавить 'TQIR', 'TQCB'
+		list = getList(b1, b2, b3)
 		
 		y1,x1,h1,w1 = saveWindowCoordinates(Table)
 		
@@ -227,19 +228,20 @@ function getList(...)
 	local args = table.pack(...)
 	
 	for i = 1, args.n do
-		local classCode = args[i]   
-		
-		local emit_list = split(getClassSecurities(classCode), ',')
-		
-		for j = 1, #emit_list do
-			local secCode = emit_list[j]
+		if args[i] ~= nil then
+			local classCode = args[i]   
 			
-			local x = Subscribe_Level_II_Quotes(classCode, secCode) -- order quotes from server
-			
-			list[j] = getEmitInfo(classCode, secCode)
+			local emit_list = split(getClassSecurities(classCode), ',')
+
+			for j = 1, #emit_list do
+				local secCode = emit_list[j]
+				
+				local x = Subscribe_Level_II_Quotes(classCode, secCode) -- order quotes from server
+				
+				table.insert(list, getEmitInfo(classCode, secCode))
+			end
 		end
 	end
 	
 	return list
 end
-
