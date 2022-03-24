@@ -12,8 +12,6 @@ function OnInit()
 	local rows = 0
 	local list = {}
 	local Quotes = {}
-	A = 0
-	B = 0
 end
 
 function OnStop()
@@ -29,7 +27,7 @@ end
 
 function main()
 	rows = #getList('TQOB') + 1 -- Добавить 'TQIR', 'TQCB'
-	PrintTable(Table, "Table", getScriptPath().."\\data\\WinPos.txt", "r")
+	PrintTable(Table, "Достижимые цены", getScriptPath().."\\data\\WinPos.txt", "r")
 	while not stopped do
 
 		list = getList('TQOB') -- Добавить 'TQIR', 'TQCB'
@@ -82,12 +80,6 @@ function AverageOfAllAskPrices(t,nom, rows)
 	local result = calc/volume
 	
 	return result
-	--[[
-	if type(result) == number then
-		return result
-	else
-		return ''
-	end]]
 end
 
 function AverageOfAllBidPrices(t,nom, rows)
@@ -104,12 +96,6 @@ function AverageOfAllBidPrices(t,nom, rows)
 	local result = calc/volume
 	
 	return result
-	--[[
-	if type(result) == number then
-		return result
-	else
-		return ''
-	end]]
 end
 
 function TargetAverageAskPrice(t, nom, rows, vol)
