@@ -5,13 +5,12 @@ dofile (getScriptPath() .. "\\data\\interface.lua")
 dofile (getScriptPath() .. "\\data\\mainf.lua")
 
 function OnInit()
-	edit = false
 	N = loadN(getScriptPath().."\\data\\N.txt")
+	Table = AllocTable()
 	
 	local stopped = false
 	local rows = 0
 	local list = {}
-	local Quotes = {}
 end
 
 function OnStop()
@@ -22,25 +21,29 @@ function OnClose()
 	stopExecution()
 end
 
---===================================================================================================================
---===================================================================================================================
+---------------------------------------------------------------------------------------------------------------------
+---------------------------------------------------------------------------------------------------------------------
 
 function main()
 	rows = #getList('TQOB') + 1 -- Добавить 'TQIR', 'TQCB'
+	
 	PrintTable(Table, "Достижимые цены", getScriptPath().."\\data\\WinPos.txt", "r")
 	while not stopped do
 
 		list = getList('TQOB') -- Добавить 'TQIR', 'TQCB'
+		
 		y1,x1,h1,w1 = saveWindowCoordinates(Table)
+		
 		SetCells(Table, list)
+		
 		SetTableNotificationCallback(Table, f_cb_Table)
 		
 		sleep(200)
 	end
 end
 
---===================================================================================================================
---===================================================================================================================
+---------------------------------------------------------------------------------------------------------------------=
+---------------------------------------------------------------------------------------------------------------------
 
 function getAskPrice(t, rows, row)
 	local vol
@@ -72,8 +75,9 @@ function AverageOfAllAskPrices(t,nom, rows)
 	
 	for i = 1, rows do
 		local p, v = getAskPrice(t, rows, i)
+		
 		volume = volume + v
-		i = i + 1
+	
 		calc = calc + v * p
 	end
 	
@@ -85,21 +89,23 @@ end
 function AverageOfAllBidPrices(t,nom, rows)
 	local volume = 0
 	local calc = 0
+	local j
 	
 	for i = rows, 1, -1 do
-		local p, v = getBidPrice(t, rows, rows)
+		j = i
+		local p, v = getBidPrice(t, rows, i)
+		
 		volume = volume + v
-		i = i - 1
+
 		calc = calc + v * p
 	end
 	
 	local result = calc/volume
-	
+
 	return result
 end
 
 function TargetAverageAskPrice(t, nom, rows, vol)
-
 	local volume = 0
 	local volume_sum = 0
 	local i = 1
@@ -117,6 +123,7 @@ function TargetAverageAskPrice(t, nom, rows, vol)
 		
 		if volume_sum > vol then
 			v = vol - volume
+			
 			x = true
 		else
 			volume = volume_sum
@@ -131,24 +138,24 @@ function TargetAverageAskPrice(t, nom, rows, vol)
 end
 
 function TargetAverageBidPrice(t, nom, rows, vol)
-
 	local volume = 0
 	local volume_sum = 0
-	local i = 1
+	local i = rows
 	local calc = 0
 	local x = false
 	
 	while not x do
-		if i > rows then
+		if i < 1 then
 			return '---'
 		end
 		
-		local p, v = getBidPrice(t, rows, rows)
+		local p, v = getBidPrice(t, rows, i)
 		
 		volume_sum = volume_sum + v
 		
 		if volume_sum > vol then
 			v = vol - volume
+			
 			x = true
 		else
 			volume = volume_sum
@@ -165,6 +172,7 @@ end
 
 -- return list of emitent parameters
 function getEmitInfo(ClassCode, SecCode)
+	
 	local ISIN = getSecurityInfo(ClassCode, SecCode).isin_code
 	local nominal = getSecurityInfo(ClassCode, SecCode).face_value
 	local reqyired_vol = math.floor((N * 1000000)/nominal)
@@ -189,8 +197,7 @@ function getEmitInfo(ClassCode, SecCode)
 		}
 
 	local average_ask_price
-	local average_bid_price
-	
+	local average_bid_price	
 	local target_average_ask_price = TargetAverageAskPrice(Quotes, nominal, ask_rows, reqyired_vol)
 	local target_average_bid_price = TargetAverageBidPrice(Quotes, nominal, bid_rows, reqyired_vol)
 	
@@ -208,7 +215,6 @@ function getEmitInfo(ClassCode, SecCode)
 	
 	list['AVERAGE_ASK_PRICE'] = average_ask_price
 	list['AVERAGE_BID_PRICE'] = average_bid_price
-	
 	list['TARGET_ASK_PRICE'] = target_average_ask_price
 	list['TARGET_BID_PRICE'] = target_average_bid_price
 
@@ -222,13 +228,18 @@ function getList(...)
 	
 	for i = 1, args.n do
 		local classCode = args[i]   
+		
 		local emit_list = split(getClassSecurities(classCode), ',')
+		
 		for j = 1, #emit_list do
 			local secCode = emit_list[j]
-			local x = Subscribe_Level_II_Quotes(classCode, secCode)
+			
+			local x = Subscribe_Level_II_Quotes(classCode, secCode) -- order quotes from server
+			
 			list[j] = getEmitInfo(classCode, secCode)
 		end
 	end
+	
 	return list
 end
 
