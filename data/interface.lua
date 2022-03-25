@@ -57,10 +57,10 @@ end
 function PrintTable(t, name, path, reg)	
 	AddColumn(t, 1,"Код эмитента", true, QTABLE_STRING_TYPE, 20)
 	AddColumn(t, 2,"ISIN", true, QTABLE_STRING_TYPE, 20)
-	AddColumn(t, 3,"Объемный бид", true, QTABLE_INT_TYPE, 20)
-	AddColumn(t, 4,"Объемный аск", true, QTABLE_INT_TYPE, 20)
-	AddColumn(t, 5,"Средний бид", true, QTABLE_INT_TYPE, 20)
-	AddColumn(t, 6,"Средний аск", true, QTABLE_INT_TYPE, 20)
+	AddColumn(t, 3,"Объемный бид", true, QTABLE_STRING_TYPE, 20)
+	AddColumn(t, 4,"Объемный аск", true, QTABLE_STRING_TYPE, 20)
+	AddColumn(t, 5,"Средний бид", true, QTABLE_STRING_TYPE, 20)
+	AddColumn(t, 6,"Средний аск", true, QTABLE_STRING_TYPE, 20)
 	
 	setWindow(t, name, path, reg, rows)
 end
@@ -68,11 +68,11 @@ end
 function SetCells(t, l)
 	for i = 1, #l do
 		SetCell(t, i+1, 1, l[i]['EMIT'])
-		SetCell(t, i+1, 2, tostring(l[i]['ISIN']))
+		SetCell(t, i+1, 2, l[i]['ISIN'])
 		SetCell(t, i+1, 3, tostring(round(l[i]['TARGET_BID_PRICE'], 4)))
 		SetCell(t, i+1, 4, tostring(round(l[i]['TARGET_ASK_PRICE'], 4)))
 		SetCell(t, i+1, 5, tostring(round(l[i]['AVERAGE_BID_PRICE'], 4)))
-		SetCell(t, i+1, 6, tostring(round(l[i]['AVERAGE_ASK_PRICE'], 4)))
+		SetCell(t, i+1, 6, round(l[i]['AVERAGE_ASK_PRICE'], 4))
 	end
 	
 	SetCell(Table, 1, 1, "N млн. рублей:")
@@ -84,9 +84,7 @@ f_cb_Table = function(t, msg,  par1, par2)
 		activeLine = par1
 		activeCol = par2
 		
-		if activeLine == 1 and activeCol == 2 then
-			SetColor(t, activeLine, activeCol, RGB (255, 248, 165), def, def, def)
-			
+		if activeLine == 1 and activeCol == 2 then			
 			edit = true
 		end
 	end
@@ -96,7 +94,7 @@ f_cb_Table = function(t, msg,  par1, par2)
 			N = characterInputHandler(N,par2,4)
 		end
 	end
-	
+	--[[
 	if msg == QTABLE_VKEY then
 		if par2 == 13 then -- Enter
 			SetColor(t, 1, 2, def, def, def, def)
@@ -109,5 +107,5 @@ f_cb_Table = function(t, msg,  par1, par2)
 			
 			edit = false
 		end
-	end
+	end]]
 end
