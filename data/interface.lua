@@ -72,7 +72,7 @@ function SetCells(t, l)
 		SetCell(t, i+1, 3, tostring(round(l[i]['TARGET_BID_PRICE'], 4)))
 		SetCell(t, i+1, 4, tostring(round(l[i]['TARGET_ASK_PRICE'], 4)))
 		SetCell(t, i+1, 5, tostring(round(l[i]['AVERAGE_BID_PRICE'], 4)))
-		SetCell(t, i+1, 6, round(l[i]['AVERAGE_ASK_PRICE'], 4))
+		SetCell(t, i+1, 6, tostring(round(l[i]['AVERAGE_ASK_PRICE'], 4)))
 	end
 	
 	SetCell(Table, 1, 1, "N млн. рублей:")
